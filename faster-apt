@@ -1,0 +1,120 @@
+#!/bin/bash
+
+## Set apt tool to use. Can be apt-get or aptitude
+APTAPP="apt-get"
+## Set apt search tool to use. Can be apt-cache or aptitude
+APTSEARCH="aptitude"
+## Self. Edit this when faster-apt is not installed in /usr/local/bin
+#SELF='/usr/local/bin/faster-apt.sh'
+SELF="$HOME/Workspace/apt-extras.sh"
+
+## Fixes root privileges when needed and you did not use sudo
+needs-root(){
+	if [ `whoami` != 'root' ] ; then
+		echo 'This task requires your administrative password!'
+		APTAPP="sudo apt-get"
+	fi
+}
+
+## Insert an empty line before echoeing a string
+2echo(){
+	echo
+	echo $@
+}
+## Insert an empty line afther echoeing a string
+echo2(){
+	echo $@
+	echo
+}
+
+## List all features in this script
+
+
+## Apt search
+function apt-search(){  # Preforms an apt-cache or aptitude search. Use -ai for aptitude and -ch for apt-cache or set APTSEARCH variable
+	if [ -e $1 ] ; then
+		2echo 'Usage: apt-search [ "package name" ]'
+	else
+		if [ ${1} = '-ai' ] ; then
+			APTSEARCH="aptitude"
+			$APTSEARCH search $2 | more
+		elif [ ${1} = '-ch' ] ; then
+			APTSEARCH="apt-cache"
+                        $APTSEARCH search $2 | more
+		else
+			$APTSEARCH search $@ | more
+		fi
+	fi
+}
+
+function apt-minimal(){  # Preforms apt-get install with --no-install-recommends
+	needs-root
+	if [ -e $1 ] ; then
+                2echo 'Usage: apt-minimal [ list of packages to install ]'
+        else
+		$APTAPP --no-install-recommends $@
+	fi
+}
+
+
+function aptinstall(){ # apt-get install shortcut. Use '-m' to not install recommended packages. 
+	needs-root
+	if [ ${1} = '-m' ] ; then
+		$APTAPP install $2
+	else
+		$APTAPP install $@
+	fi
+}
+
+function aptremove(){  # apt-get remove with purge and autoremove question
+	answer=999
+	needs-root
+	read -p 'Make a choice from the menu:' answer
+
+	case "$answer" in
+	1)
+		echo 'Keep all configuration and do not clean dependencies.  (the safe Option)' 
+	        $APTAPP remove $@
+		;;
+	2)
+		echo 'Clean configuration files too (purge)'
+		$APTAPP purge $@
+		;;
+	3)
+		echo 'Clean configuration (purge) and clean dependencies. (autoremove)'
+		$APTAPP --purge autoremove $@
+		;;
+
+	*)
+                echo 'Invalid input! Answer: 1, 2 or 3'
+
+	esac
+
+}
+
+
+
+#############################################################################
+##### Keep all functions that need to be in help above the help function!!!##
+#############################################################################
+
+function apthelp(){ # Show a list of functions
+	echo	'USAGE: "source /usr/local/bin/faster-apt.sh"'
+	echo
+	grep "^function" $SELF | sed 's/(){/ /' | sed 's/function/  /'
+	echo
+}
+
+help(){
+	apthelp
+}
+
+
+if [ "_$1" = "_" ] ; then
+	2echo 'You need to source this script to make its feautures available in your shell.'
+	echo 'Execute: source /usr/local/bin/faster-apt.sh'
+	echo2 'From a script execute like this: .' "/usr/local/bin/faster-apt.sh"
+else
+	$@
+fi
+
