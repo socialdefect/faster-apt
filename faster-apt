@@ -5,8 +5,8 @@ APTAPP="apt-get"
 ## Set apt search tool to use. Can be apt-cache or aptitude
 APTSEARCH="aptitude"
 ## Self. Edit this when faster-apt is not installed in /usr/local/bin
-#SELF='/usr/local/bin/faster-apt.sh'
-SELF="$HOME/Workspace/apt-extras.sh"
+SELF='/usr/local/bin/faster-apt'
+#SELF="$HOME/Workspace/apt-extras.sh"
 
 ## Fixes root privileges when needed and you did not use sudo
 needs-root(){
@@ -105,16 +105,56 @@ function apthelp(){ # Show a list of functions
 	echo
 }
 
+function apt-update(){ # Update the apt repo data
+	needs-root
+	$APTAPP -f update
+}
+
+function apt-upgrade(){ # Update the apt repo data and install updates if any
+        needs-root
+	$APTAPP -f update
+	$APTAPP dist-upgrade
+}
+
+function apt-fixinstall(){ # Try to repair broken packages
+        needs-root
+	$APTAPP -f install
+}
+
+function apt-localinstall(){ # Install a local deb package
+        needs-root
+	if [ -f `which gdebi` ] ; then
+		sudo gdebi "$@"
+	else
+		sudo dpkg -i "$@"
+		if [ $? != 0 ] ; then
+	        	$APTAPP -f install
+		fi
+	fi
+}
+
 help(){
 	apthelp
 }
 
+faster-apt-check(){
+	echo "Checking if faster-apt is enabled"
+}
+faster-apt-check
 
-if [ "_$1" = "_" ] ; then
+if [ "$?" != "0" ] ; then
 	2echo 'You need to source this script to make its feautures available in your shell.'
-	echo 'Execute: source /usr/local/bin/faster-apt.sh'
-	echo2 'From a script execute like this: .' "/usr/local/bin/faster-apt.sh"
+	echo 'Execute: source /usr/local/bin/faster-apt'
+	echo2 'From a script execute like this: .' "/usr/local/bin/faster-apt"
 else
-	$@
+	echo 'Faster Apt is enabled in this shell!...'
+	echo
+	if [ -e "$1" ] ; then
+		echo 'No action provided...'
+		echo
+		help
+	else
+		$@
+	fi
 fi
 
